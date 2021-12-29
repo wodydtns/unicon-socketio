@@ -14,8 +14,16 @@ const server = http.createServer(
 );
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:3000"],
     credential: true,
+  },
+  handlePreflightRequest: (req, res) => {
+    res.writeHead(200, {
+      "Access-Control-Allow-Origin": "http://localhost:3000",
+      "Access-Control-Allow-Methods": "GET,POST",
+      "Access-Control-Allow-Credentials": true,
+    });
+    res.end();
   },
 });
 app.use(cors());
@@ -41,7 +49,9 @@ io.on("connection", (socket) => {
 
     socket.join(data.room);
     console.log(`[${socketToRoom[socket.id]}]: ${socket.id} enter`);
-
+    io.sockets
+      .to(data.room)
+      .emit("message", `${socket}.id}님이 입장하셨습니다.`);
     const usersInThisRoom = users[data.room].filter(
       (user) => user.id !== socket.id
     );
@@ -72,8 +82,11 @@ io.on("connection", (socket) => {
     });
   });
   socket.on("message", function (name, text) {
-    var msg = name + ":" + text;
-    console.log(msg);
+    var msg = {
+      name: name,
+      text: text,
+    };
+    console.log("msg:" + msg);
     io.emit("receive message", msg);
   });
 
@@ -93,6 +106,6 @@ io.on("connection", (socket) => {
     console.log(users);
   });
 });
-server.listen(8000, function () {
+server.listen(8001, function () {
   console.log("Started chatting server");
 });
